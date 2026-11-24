@@ -1,5 +1,10 @@
 # Histórico de alterações
 
+## 0.3.0 — P2
+
+- Modelos offline Branco, Caderno azul e Jardim da turma, com título opcional.
+- Fundos, molduras e títulos compostos em milímetros e compartilhados pela prévia e pelo PDF.
+
 ## 0.2.0 — P1
 
 - Interface desktop em PySide6 para selecionar a pasta de entrada e o destino PDF.

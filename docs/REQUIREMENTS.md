@@ -1,4 +1,4 @@
-# Requisitos P0 e P1
+# Requisitos P0 a P2
 
 - Executar localmente com Python 3.11 ou superior, Pillow e ReportLab.
 - Importar JPG, JPEG e PNG do nível imediato da pasta, em ordem de nome sem distinção de caixa, com desempate pelo nome original.
@@ -10,3 +10,5 @@
 - Oferecer CLI e testes com imagens sintéticas.
 - Na interface desktop, permitir selecionar origem e destino, ver a quantidade de fotos e a lista de arquivos inválidos, ajustar margens e pré-visualizar a primeira página.
 - Executar validação e exportação fora da thread da janela. Permitir cancelamento cooperativo até a publicação.
+- Oferecer os modelos Branco, Caderno azul e Jardim da turma na interface desktop. O Branco sem título conserva a geometria da P1.
+- Permitir um título opcional de uma linha. Dimensionar o texto dentro das margens e informar se ele não couber ou se contiver caracteres ausentes na fonte. Usar a mesma composição na prévia e em todas as páginas do PDF.

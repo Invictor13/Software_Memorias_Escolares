@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from .decoration import WHITE, Theme, compose_page
 from .errors import ExportError
 from .export import export_pdf
 from .imaging import discover, load_photo
@@ -10,8 +11,9 @@ from .operation import Operation
 
 
 def generate_album(directory: Path, destination: Path, layout: Mosaic = Mosaic(),
-                   *, operation: Operation | None = None) -> int:
-    slots = layout.slots()
+                   *, operation: Operation | None = None, theme: Theme = WHITE,
+                   title: str = "") -> int:
+    design = compose_page(layout, theme, title)
     if destination.suffix.lower() != ".pdf":
         raise ExportError("O destino deve usar a extensão .pdf.")
     photos = discover(directory)
@@ -21,5 +23,5 @@ def generate_album(directory: Path, destination: Path, layout: Mosaic = Mosaic()
         load_photo(path).close()
         if operation:
             operation.progress("Validando fotos", index, len(photos))
-    export_pdf(destination, photos, slots, operation)
+    export_pdf(destination, photos, design, operation)
     return len(photos)

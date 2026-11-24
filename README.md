@@ -12,7 +12,9 @@ python -m venv .venv
 .\.venv\Scripts\python -m okami_memorias.desktop
 ```
 
-Escolha a pasta de fotos, ajuste as margens observando a primeira página e escolha onde salvar. Clique em **Gerar PDF**. Se houver arquivos inválidos, a interface exibe a contagem e dá acesso aos nomes. Corrija os arquivos e selecione a pasta novamente. O botão **Cancelar** interrompe a operação no próximo ponto seguro. Uma foto grande ou a gravação final do PDF pode atrasar a resposta ao cancelamento.
+Escolha a pasta de fotos e selecione **Branco**, **Caderno azul** ou **Jardim da turma**. Digite um título se quiser repeti-lo em todas as páginas. Ajuste as margens observando a prévia da primeira página, escolha onde salvar e clique em **Gerar PDF**. Os modelos decorativos mantêm os fundos e molduras dentro das margens e reservam espaço para as fotos inteiras.
+
+Se houver arquivos inválidos, a interface exibe a contagem e dá acesso aos nomes. Corrija os arquivos e selecione a pasta novamente. O botão **Cancelar** interrompe a operação no próximo ponto seguro. Uma foto grande ou a gravação final do PDF pode atrasar a resposta ao cancelamento.
 
 Para instalar sem rede, prepare o wheelhouse com `python -m pip wheel --wheel-dir wheelhouse ".[desktop]"` e instale `"okami-memorias[desktop]"` usando `--no-index --find-links wheelhouse`. Se o pip indicar caminhos longos no Windows, crie o ambiente virtual em um caminho curto, como `C:\venvs\okami` em uma pasta na qual você tenha acesso de escrita, e use o executável desse ambiente.
 
