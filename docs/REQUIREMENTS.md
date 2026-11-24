@@ -1,4 +1,4 @@
-# Requisitos P0
+# Requisitos P0 e P1
 
 - Executar localmente com Python 3.11 ou superior, Pillow e ReportLab.
 - Importar JPG, JPEG e PNG do nível imediato da pasta, em ordem de nome sem distinção de caixa, com desempate pelo nome original.
@@ -8,3 +8,5 @@
 - Reduzir fotos grandes a aproximadamente 300 ppi no tamanho de impressão, sem ampliar as pequenas. Incorporar JPEG com qualidade 92 e metadados genéricos de documento.
 - Gravar em caminho novo com extensão PDF e pasta existente. Limpar o temporário em caso de falha ou interrupção durante a geração.
 - Oferecer CLI e testes com imagens sintéticas.
+- Na interface desktop, permitir selecionar origem e destino, ver a quantidade de fotos e a lista de arquivos inválidos, ajustar margens e pré-visualizar a primeira página.
+- Executar validação e exportação fora da thread da janela. Permitir cancelamento cooperativo até a publicação.

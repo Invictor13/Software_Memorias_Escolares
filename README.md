@@ -1,8 +1,22 @@
 # OKAMI Memórias Escolares
 
-A versão P0 transforma uma pasta de fotografias em um mosaico PDF A4 para impressão. O processamento acontece no computador, com quatro espaços por página e margem esquerda para encadernação.
+O OKAMI transforma uma pasta de fotografias em um mosaico PDF A4 para impressão. O processamento acontece no computador, com quatro espaços por página e margem esquerda para encadernação.
 
-## Instalação
+## Interface desktop
+
+No PowerShell, a partir da raiz do projeto, com Python 3.11 ou superior:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install ".[desktop]"
+.\.venv\Scripts\python -m okami_memorias.desktop
+```
+
+Escolha a pasta de fotos, ajuste as margens observando a primeira página e escolha onde salvar. Clique em **Gerar PDF**. Se houver arquivos inválidos, a interface exibe a contagem e dá acesso aos nomes. Corrija os arquivos e selecione a pasta novamente. O botão **Cancelar** interrompe a operação no próximo ponto seguro. Uma foto grande ou a gravação final do PDF pode atrasar a resposta ao cancelamento.
+
+Para instalar sem rede, prepare o wheelhouse com `python -m pip wheel --wheel-dir wheelhouse ".[desktop]"` e instale `"okami-memorias[desktop]"` usando `--no-index --find-links wheelhouse`. Se o pip indicar caminhos longos no Windows, crie o ambiente virtual em um caminho curto, como `C:\venvs\okami` em uma pasta na qual você tenha acesso de escrita, e use o executável desse ambiente.
+
+## Instalação da CLI
 
 Requer Python 3.11 ou superior. No PowerShell, a partir da raiz do projeto:
 

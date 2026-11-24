@@ -14,20 +14,28 @@ from reportlab.pdfgen.canvas import Canvas
 from .errors import ExportError
 from .imaging import load_photo
 from .layouts import A4_HEIGHT, A4_WIDTH, Rect
+from .operation import Operation
 
 PRINT_DPI = 300
 
 
-def render_pdf(stream, photos: list[Path], slots: tuple[Rect, ...]) -> None:
+def render_pdf(stream, photos: list[Path], slots: tuple[Rect, ...],
+               operation: Operation | None = None) -> None:
     pdf = Canvas(stream, pagesize=(A4_WIDTH * mm, A4_HEIGHT * mm),
                  pageCompression=1, invariant=1)
     pdf.setTitle("Álbum de fotografias")
     pdf.setAuthor("OKAMI Memórias Escolares")
     pdf.setSubject("Mosaico fotográfico A4")
+    if operation:
+        operation.progress("Montando páginas", 0, len(photos))
     for offset in range(0, len(photos), len(slots)):
         pdf.setFillColorRGB(1, 1, 1)
         pdf.rect(0, 0, A4_WIDTH * mm, A4_HEIGHT * mm, fill=1, stroke=0)
-        for path, slot in zip(photos[offset:offset + len(slots)], slots):
+        for index, (path, slot) in enumerate(
+            zip(photos[offset:offset + len(slots)], slots), start=offset + 1
+        ):
+            if operation:
+                operation.checkpoint()
             with load_photo(path) as photo, BytesIO() as encoded:
                 area = slot.contain(*photo.size)
                 photo.thumbnail(
@@ -40,11 +48,16 @@ def render_pdf(stream, photos: list[Path], slots: tuple[Rect, ...]) -> None:
                 encoded.seek(0)
                 pdf.drawImage(ImageReader(encoded), area.x * mm, area.y * mm,
                               area.width * mm, area.height * mm)
+            if operation:
+                operation.progress("Montando páginas", index, len(photos))
         pdf.showPage()
+    if operation:
+        operation.progress("Salvando PDF", 0, 0)
     pdf.save()
 
 
-def export_pdf(destination: Path, photos: list[Path], slots: tuple[Rect, ...]) -> None:
+def export_pdf(destination: Path, photos: list[Path], slots: tuple[Rect, ...],
+               operation: Operation | None = None) -> None:
     temporary = None
     try:
         if os.path.lexists(destination):
@@ -52,7 +65,9 @@ def export_pdf(destination: Path, photos: list[Path], slots: tuple[Rect, ...]) -
         with NamedTemporaryFile(mode="w+b", suffix=".tmp", prefix=".okami-",
                                 dir=destination.parent, delete=False) as stream:
             temporary = Path(stream.name)
-            render_pdf(stream, photos, slots)
+            render_pdf(stream, photos, slots, operation)
+        if operation:
+            operation.checkpoint()
         # No Windows, rename recusa destinos existentes. Em POSIX, link dá a mesma garantia.
         if os.name == "nt":
             temporary.rename(destination)
