@@ -16,6 +16,16 @@ Escolha a pasta de fotos e selecione **Branco**, **Caderno azul** ou **Jardim da
 
 Se houver arquivos inválidos, a interface exibe a contagem e dá acesso aos nomes. Corrija os arquivos e selecione a pasta novamente. O botão **Cancelar** interrompe a operação no próximo ponto seguro. Uma foto grande ou a gravação final do PDF pode atrasar a resposta ao cancelamento.
 
+### Exportar uma turma
+
+Organize uma pasta com uma subpasta por aluno, como `Turma 5A/Ana`, `Turma 5A/João` e `Turma 5A/Luísa`. Coloque as fotos no nível imediato de cada subpasta.
+
+1. Selecione **Turma — PDFs por aluno** e escolha a pasta da turma. Use **Ver lista da turma** para conferir contagens, pastas vazias e arquivos inválidos.
+2. Escolha um aluno para visualizar a primeira página. Modelo e margens valem para toda a turma. Você pode deixar o título vazio, digitar um título comum ou usar o nome da subpasta como título de cada PDF.
+3. Escolha uma pasta de destino existente e clique em **Exportar turma**. Confira os arquivos gerados, falhas e pendências em **Ver resultado do lote**.
+
+Cada PDF recebe o nome da subpasta do aluno. Pastas vazias ou com arquivos inválidos são ignoradas. Se um PDF já existir, o lote registra a falha e continua com os demais alunos. Cancelar mantém os PDFs concluídos e descarta a exportação em andamento. Corrija as entradas e selecione novamente a pasta da turma para atualizar a validação.
+
 Para instalar sem rede, prepare o wheelhouse com `python -m pip wheel --wheel-dir wheelhouse ".[desktop]"` e instale `"okami-memorias[desktop]"` usando `--no-index --find-links wheelhouse`. Se o pip indicar caminhos longos no Windows, crie o ambiente virtual em um caminho curto, como `C:\venvs\okami` em uma pasta na qual você tenha acesso de escrita, e use o executável desse ambiente.
 
 ## Instalação da CLI

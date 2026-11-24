@@ -12,8 +12,12 @@ Seleção de pasta e destino, validação de arquivos, prévia A4 e exportação
 
 Modelos vetoriais internos, fundos, molduras e título opcional com geometria compartilhada pela prévia e pelo PDF.
 
+## P3 — Exportação por turma
+
+Importação por subpasta, prévia por aluno e exportação em lote de PDFs individuais.
+
 ## Etapas posteriores
 
-- Projetos de turma, agrupamento por aluno, exportação em lote e assistentes de impressão.
+- Projetos de turma persistentes e assistentes de impressão.
 - Ampliação dos modelos com recursos SVG.
 - Avaliação do gerenciamento de cor e empacotamento.

@@ -1,5 +1,11 @@
 # Histórico de alterações
 
+## 0.4.0 — P3
+
+- Modo Turma com descoberta de alunos por subpasta, contagens e lista de problemas.
+- Prévia por aluno com modelo e margens compartilhados e nome opcional como título.
+- Exportação individual em lote com progresso, resumo e cancelamento que preserva os PDFs concluídos.
+
 ## 0.3.0 — P2
 
 - Modelos offline Branco, Caderno azul e Jardim da turma, com título opcional.
