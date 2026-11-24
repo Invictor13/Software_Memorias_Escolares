@@ -6,3 +6,7 @@ class PhotoError(Exception):
 
 class ExportError(Exception):
     """O PDF não pôde ser publicado no destino."""
+
+
+class OperationCancelled(Exception):
+    """A operação foi interrompida antes da publicação."""
