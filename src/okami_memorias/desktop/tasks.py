@@ -27,6 +27,25 @@ class FolderScan:
     preview: tuple[PreviewPhoto, ...]
 
 
+def _thumbnail(photo: Image.Image) -> PreviewPhoto:
+    size = photo.size
+    photo.thumbnail((640, 640), Image.Resampling.LANCZOS)
+    width, height = photo.size
+    image = QImage(photo.tobytes(), width, height, width * 3, QImage.Format.Format_RGB888)
+    return PreviewPhoto(size, image.copy())
+
+
+def preview_student(directory: Path, operation: Operation) -> tuple[PreviewPhoto, ...]:
+    paths = discover(directory)[:PHOTOS_PER_PAGE]
+    preview = []
+    for index, path in enumerate(paths):
+        operation.progress("Carregando prévia", index, len(paths))
+        with load_photo(path) as photo:
+            preview.append(_thumbnail(photo))
+    operation.checkpoint()
+    return tuple(preview)
+
+
 def scan_folder(directory: Path, operation: Operation) -> FolderScan:
     paths = discover(directory)
     invalid = []
@@ -36,12 +55,7 @@ def scan_folder(directory: Path, operation: Operation) -> FolderScan:
         try:
             with load_photo(path) as photo:
                 if len(preview) < PHOTOS_PER_PAGE:
-                    size = photo.size
-                    photo.thumbnail((640, 640), Image.Resampling.LANCZOS)
-                    width, height = photo.size
-                    image = QImage(photo.tobytes(), width, height, width * 3,
-                                   QImage.Format.Format_RGB888).copy()
-                    preview.append(PreviewPhoto(size, image))
+                    preview.append(_thumbnail(photo))
         except PhotoError:
             invalid.append(path.name)
         operation.progress("Verificando pasta", index, len(paths))

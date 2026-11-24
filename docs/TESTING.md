@@ -14,3 +14,5 @@ A suíte cria imagens geométricas durante a execução. Verifica descoberta, EX
 Os testes da interface usam o modo `offscreen` do Qt e simulam a seleção nos diálogos. Eles verificam a exportação de cinco fotos, geometria compartilhada com a prévia e bloqueio por arquivos inválidos. Para preparar os wheels da suíte completa, use `".[desktop,test]"`. Com apenas o extra `test`, os testes de interface são pulados.
 
 Os testes dos modelos verificam a compatibilidade do Branco, as margens, as cores e posições dos elementos no PDF, o título acentuado, as proporções das fotografias e a paginação 4 + 1. Os testes Qt exercitam a seleção do modelo e a exportação com título.
+
+Os testes de turma verificam três alunos com 1, 4 e 5 fotos, PDFs de 1, 1 e 2 páginas, margem esquerda de 25 mm e título por aluno. Também cobrem a troca de prévia, pastas vazias, fotos inválidas, destino existente e cancelamento após o primeiro PDF.

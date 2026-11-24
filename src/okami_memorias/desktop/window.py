@@ -2,18 +2,20 @@
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import (
-    QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel,
     QLineEdit, QMessageBox, QProgressBar, QPushButton, QVBoxLayout, QWidget,
 )
 
+from ..batch import BatchResult, export_class, scan_class
 from ..core import generate_album
 from ..decoration import THEMES, TITLE_LIMIT, compose_page
 from ..errors import OperationCancelled
 from ..layouts import Mosaic, PHOTOS_PER_PAGE
+from .class_panel import ClassPanel, show_batch_result
 from .preview import PagePreview
-from .tasks import FolderScan, Job, scan_folder
+from .tasks import FolderScan, Job, preview_student, scan_folder
 
 STYLE = """
 QWidget#window { background: #f4f7f5; color: #182b23; }
@@ -41,12 +43,13 @@ class MainWindow(QWidget):
         super().__init__()
         self.setWindowTitle("OKAMI Memórias Escolares")
         self.setObjectName("window")
-        self.resize(960, 720)
+        self.resize(980, 800)
         self.setStyleSheet(STYLE)
         self.job: Job | None = None
         self.scan: FolderScan | None = None
         self.directory: Path | None = None
         self.destination: Path | None = None
+        self.batch_result: BatchResult | None = None
         self._closing = False
 
         body = QVBoxLayout(self)
@@ -64,7 +67,12 @@ class MainWindow(QWidget):
         settings.setSpacing(8)
         columns.addWidget(controls, 1)
 
-        settings.addWidget(label("Pasta de fotos", "section"))
+        self.mode = QComboBox()
+        self.mode.addItems(["Álbum único", "Turma — PDFs por aluno"])
+        self.mode.setAccessibleName("Tipo de exportação")
+        settings.addWidget(self.mode)
+        self.source_label = label("Pasta de fotos", "section")
+        settings.addWidget(self.source_label)
         self.source = QLineEdit(readOnly=True, placeholderText="Selecione uma pasta")
         self.source.setAccessibleName("Pasta de fotos")
         self.choose_source = QPushButton("Escolher pasta…")
@@ -80,6 +88,10 @@ class MainWindow(QWidget):
         self.issues.clicked.connect(self.show_issues)
         self.issues.hide()
         settings.addWidget(self.issues, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.class_panel = ClassPanel()
+        self.class_panel.selector.currentIndexChanged.connect(self.select_student)
+        self.class_panel.hide()
+        settings.addWidget(self.class_panel)
 
         settings.addSpacing(8)
         settings.addWidget(label("Modelo do mosaico", "section"))
@@ -93,6 +105,10 @@ class MainWindow(QWidget):
         self.album_title.setMaxLength(TITLE_LIMIT)
         self.album_title.textChanged.connect(self.update_preview)
         settings.addWidget(self.album_title)
+        self.use_student_title = QCheckBox("Usar o nome do aluno como título")
+        self.use_student_title.toggled.connect(self.update_preview)
+        self.use_student_title.hide()
+        settings.addWidget(self.use_student_title)
 
         settings.addSpacing(8)
         settings.addWidget(label("Margens e espaçamento", "section"))
@@ -120,7 +136,8 @@ class MainWindow(QWidget):
         settings.addWidget(self.layout_error)
 
         settings.addSpacing(8)
-        settings.addWidget(label("Destino do PDF", "section"))
+        self.target_label = label("Destino do PDF", "section")
+        settings.addWidget(self.target_label)
         self.target = QLineEdit(readOnly=True, placeholderText="Selecione onde salvar")
         self.target.setAccessibleName("Destino do PDF")
         self.choose_target = QPushButton("Escolher destino…")
@@ -151,23 +168,62 @@ class MainWindow(QWidget):
         self.cancel = QPushButton("Cancelar")
         self.cancel.clicked.connect(self.cancel_job)
         self.cancel.hide()
+        self.result_button = QPushButton("Ver resultado do lote")
+        self.result_button.clicked.connect(self.show_result)
+        self.result_button.hide()
         self.export = QPushButton("Gerar PDF", objectName="primary")
         self.export.clicked.connect(self.start_export)
         footer.addWidget(self.status, 1)
         footer.addWidget(self.progress)
         footer.addWidget(self.cancel)
+        footer.addWidget(self.result_button)
         footer.addWidget(self.export)
         body.addLayout(footer)
+        self.mode.currentIndexChanged.connect(self.change_mode)
+        self.update_preview()
+
+    @property
+    def is_class(self) -> bool:
+        return self.mode.currentIndex() == 1
+
+    def change_mode(self) -> None:
+        self.directory = self.destination = self.scan = None
+        self.source.clear()
+        self.target.clear()
+        self.source.setToolTip("")
+        self.target.setToolTip("")
+        self.status.clear()
+        self.summary.setText("Nenhuma pasta selecionada.")
+        self.issues.hide()
+        self.class_panel.set_students(())
+        self.clear_result()
+        self.class_panel.setVisible(self.is_class)
+        self.use_student_title.setVisible(self.is_class)
+        self.source_label.setText("Pasta da turma" if self.is_class else "Pasta de fotos")
+        self.source.setAccessibleName(self.source_label.text())
+        self.target_label.setText("Pasta dos PDFs" if self.is_class else "Destino do PDF")
+        self.target.setAccessibleName(self.target_label.text())
+        self.export.setText("Exportar turma" if self.is_class else "Gerar PDF")
         self.update_preview()
 
     def layout_settings(self) -> Mosaic:
         return Mosaic(**{name: field.value() for name, field in self.margins.items()})
 
     def update_preview(self) -> None:
+        student = self.class_panel.selected if self.is_class else None
+        use_name = self.is_class and self.use_student_title.isChecked()
+        common_title = "" if use_name else self.album_title.text()
+        self.album_title.setEnabled(not use_name and self.job is None)
+        layout = self.layout_settings()
+        theme = THEMES[self.theme.currentIndex()]
+        design = None
+        error = ""
+        valid_settings = False
         try:
-            design = compose_page(self.layout_settings(), THEMES[self.theme.currentIndex()],
-                                  self.album_title.text())
-            error = ""
+            design = compose_page(layout, theme, common_title)
+            valid_settings = True
+            if use_name and student:
+                design = compose_page(layout, theme, student.name)
         except ValueError as exc:
             design = None
             error = str(exc)
@@ -176,14 +232,23 @@ class MainWindow(QWidget):
         usable = self.scan is not None and not self.scan.invalid
         self.preview.set_page(design, self.scan.preview if usable else ())
         pages = (self.scan.total + PHOTOS_PER_PAGE - 1) // PHOTOS_PER_PAGE if usable else 0
+        heading = f"Prévia da página 1 de {pages}" if pages else "Prévia da primeira página"
+        if student:
+            heading = f"{heading} · {student.name}"
         self.page_label.setText(
-            f"Prévia da página 1 de {pages}" if pages else "Prévia da primeira página"
+            self.page_label.fontMetrics().elidedText(
+                heading, Qt.TextElideMode.ElideRight, max(290, self.preview.width())
+            )
         )
-        self.export.setEnabled(bool(design and usable and self.destination and not self.job))
+        self.page_label.setToolTip(heading)
+        ready = any(item.ready for item in self.class_panel.students) if self.is_class else usable
+        self.export.setEnabled(bool(valid_settings and ready and self.destination and not self.job))
 
     def pick_folder(self) -> None:
-        selected = QFileDialog.getExistingDirectory(self, "Escolher pasta de fotos",
-                                                      self.source.text())
+        selected = QFileDialog.getExistingDirectory(
+            self, "Escolher pasta da turma" if self.is_class else "Escolher pasta de fotos",
+            self.source.text(),
+        )
         if selected:
             self.load_folder(Path(selected))
 
@@ -194,7 +259,37 @@ class MainWindow(QWidget):
         self.scan = None
         self.issues.hide()
         self.summary.setText("Verificando fotos…")
-        self.start_job(lambda operation: scan_folder(directory, operation), self.folder_finished)
+        if self.is_class:
+            self.clear_result()
+            self.class_panel.set_students(())
+            self.start_job(lambda operation: scan_class(directory, operation), self.class_finished)
+        else:
+            self.start_job(lambda operation: scan_folder(directory, operation), self.folder_finished)
+
+    def class_finished(self, job: Job) -> None:
+        if job.error:
+            self.summary.setText("Turma ainda não validada.")
+            self.show_job_error(job)
+            return
+        self.summary.clear()
+        self.class_panel.set_students(job.result)
+        self.select_student()
+
+    def select_student(self) -> None:
+        self.scan = None
+        self.update_preview()
+        student = self.class_panel.selected
+        if student and student.ready:
+            self.start_job(lambda operation: preview_student(student.directory, operation),
+                           self.student_preview_finished)
+
+    def student_preview_finished(self, job: Job) -> None:
+        if job.error:
+            self.show_job_error(job)
+            return
+        student = self.class_panel.selected
+        self.scan = FolderScan(student.total, (), job.result)
+        self.status.clear()
 
     def folder_finished(self, job: Job) -> None:
         if job.error:
@@ -219,6 +314,13 @@ class MainWindow(QWidget):
         dialog.exec()
 
     def pick_destination(self) -> None:
+        if self.is_class:
+            folder = QFileDialog.getExistingDirectory(
+                self, "Escolher pasta dos PDFs", str(self.destination or self.directory or "")
+            )
+            if folder:
+                self.set_destination(Path(folder))
+            return
         dialog = QFileDialog(self, "Salvar mosaico", str(self.destination or self.directory or ""))
         dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
         dialog.setNameFilter("Documento PDF (*.pdf)")
@@ -232,12 +334,23 @@ class MainWindow(QWidget):
         self.target.setText(str(path))
         self.target.setToolTip(str(path))
         self.status.clear()
+        self.clear_result()
         self.update_preview()
 
     def start_export(self) -> None:
         directory, destination, layout = self.directory, self.destination, self.layout_settings()
         theme = THEMES[self.theme.currentIndex()]
         title = self.album_title.text()
+        if self.is_class:
+            self.clear_result()
+            students = self.class_panel.students
+            use_name = self.use_student_title.isChecked()
+            self.start_job(
+                lambda operation: export_class(students, destination, operation, layout=layout,
+                                               theme=theme, title=title, student_titles=use_name),
+                self.batch_finished,
+            )
+            return
         self.start_job(
             lambda operation: generate_album(directory, destination, layout, operation=operation,
                                              theme=theme, title=title),
@@ -250,6 +363,25 @@ class MainWindow(QWidget):
         else:
             self.status.setText(f"PDF salvo com {job.result} foto(s).")
             self.status.setToolTip(str(self.destination))
+
+    def clear_result(self) -> None:
+        self.batch_result = None
+        self.result_button.hide()
+
+    def batch_finished(self, job: Job) -> None:
+        if job.error:
+            self.show_job_error(job)
+            return
+        result = self.batch_result = job.result
+        prefix = "Lote cancelado · " if result.pending else ""
+        self.batch_summary = (f"{prefix}{len(result.generated)} PDF(s) gerado(s) · "
+                              f"{len(result.failed)} falha(s) · {len(result.skipped)} ignorado(s)"
+                              + (f" · {len(result.pending)} pendente(s)" if result.pending else ""))
+        self.status.setText(self.batch_summary)
+        self.result_button.show()
+
+    def show_result(self) -> None:
+        show_batch_result(self, self.batch_summary, self.batch_result)
 
     def show_job_error(self, job: Job) -> None:
         if isinstance(job.error, OperationCancelled):
@@ -270,20 +402,25 @@ class MainWindow(QWidget):
         self.update_progress("Preparando…", 0, 0)
         job.start()
 
+    @Slot()
     def finish_job(self) -> None:
         job = self.job
+        job.wait()
         self.job = None
+        on_finished, self._on_finished = self._on_finished, None
+        job.operation = None
         job.deleteLater()
         if self._closing:
             self.close()
             return
         self.set_busy(False)
-        self._on_finished(job)
+        on_finished(job)
         self.update_preview()
 
     def set_busy(self, busy: bool) -> None:
-        for widget in (self.choose_source, self.choose_target, self.issues,
-                       self.theme, self.album_title, *self.margins.values()):
+        for widget in (self.mode, self.choose_source, self.choose_target, self.issues,
+                       self.theme, self.use_student_title, self.class_panel, self.result_button,
+                       *self.margins.values()):
             widget.setEnabled(not busy)
         self.cancel.setVisible(busy)
         self.cancel.setEnabled(busy)

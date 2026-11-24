@@ -9,21 +9,28 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 pytest.importorskip("PySide6.QtWidgets")
 
+from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QApplication, QFileDialog
 
 from okami_memorias.desktop import window as desktop
 from okami_memorias.desktop.window import MainWindow
 
 
+@pytest.fixture(scope="module")
+def app():
+    return QApplication.instance() or QApplication([])
+
+
 @pytest.fixture
-def window():
-    app = QApplication.instance() or QApplication([])
+def window(app):
     widget = MainWindow()
     widget.show()
     app.processEvents()
     yield widget
     wait_for_job(widget)
     widget.close()
+    widget.deleteLater()
+    QApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
 
 
 def wait_until(condition):
@@ -120,3 +127,44 @@ def test_desktop_cancel_button_signals_worker(tmp_path, window, monkeypatch):
     assert window.status.text() == "Operação cancelada."
     assert window.export.isEnabled()
     assert not window.destination.exists()
+
+
+def test_desktop_class_mode_previews_students_and_exports_batch(tmp_path, window, monkeypatch):
+    classroom = tmp_path / "turma"
+    target = tmp_path / "pdfs"
+    target.mkdir()
+    for name, count in (("Alice", 1), ("Bruno", 4), ("Cecília", 5)):
+        folder = classroom / name
+        folder.mkdir(parents=True)
+        for index in range(count):
+            with Image.new("RGB", (80, 120 + index), (index * 40, 80, 100)) as photo:
+                photo.save(folder / f"{index}.png")
+    (classroom / "Sem fotos").mkdir()
+    paths = iter((str(classroom), str(target)))
+    monkeypatch.setattr(QFileDialog, "getExistingDirectory", lambda *_: next(paths))
+
+    window.mode.setCurrentIndex(1)
+    window.choose_source.click()
+    wait_for_job(window)
+    assert "4 aluno(s) · 3 apto(s)" in window.class_panel.summary.text()
+    assert len(window.preview.photos) == 1
+    window.class_panel.selector.setCurrentIndex(2)
+    wait_for_job(window)
+    assert len(window.preview.photos) == 4
+    assert "1 de 2 · Cecília" in window.page_label.text()
+    window.use_student_title.setChecked(True)
+    window.margins["left"].setValue(25)
+    window.theme.setCurrentIndex(2)
+    assert window.preview.design.heading.text == "Cecília"
+    window.choose_target.click()
+    assert window.export.isEnabled()
+    window.export.click()
+    wait_for_job(window)
+    assert window.result_button.isVisible()
+    assert len(window.batch_result.skipped) == 1
+    assert len(window.batch_result.generated) == 3
+    expected = [1, 1, 2]
+    for path, pages in zip(window.batch_result.generated, expected):
+        pdf = PdfReader(path)
+        assert len(pdf.pages) == pages
+        assert pdf.pages[0].extract_text().strip() == path.stem

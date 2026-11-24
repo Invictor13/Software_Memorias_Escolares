@@ -1,4 +1,4 @@
-# Requisitos P0 a P2
+# Requisitos P0 a P3
 
 - Executar localmente com Python 3.11 ou superior, Pillow e ReportLab.
 - Importar JPG, JPEG e PNG do nível imediato da pasta, em ordem de nome sem distinção de caixa, com desempate pelo nome original.
@@ -12,3 +12,6 @@
 - Executar validação e exportação fora da thread da janela. Permitir cancelamento cooperativo até a publicação.
 - Oferecer os modelos Branco, Caderno azul e Jardim da turma na interface desktop. O Branco sem título conserva a geometria da P1.
 - Permitir um título opcional de uma linha. Dimensionar o texto dentro das margens e informar se ele não couber ou se contiver caracteres ausentes na fonte. Usar a mesma composição na prévia e em todas as páginas do PDF.
+- Importar alunos a partir das subpastas imediatas da turma e exibir a contagem de fotos e problemas de cada aluno.
+- Usar configurações de layout comuns, prévia por aluno e opções de título comum ou nome da subpasta.
+- Exportar um PDF A4 por aluno apto para uma pasta de destino existente. Continuar após falhas individuais, proteger os arquivos existentes e preservar os PDFs concluídos se o lote for cancelado.
