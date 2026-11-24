@@ -16,8 +16,12 @@ Modelos vetoriais internos, fundos, molduras e título opcional com geometria co
 
 Importação por subpasta, prévia por aluno e exportação em lote de PDFs individuais.
 
+## P4 — Impressão e distribuição no Windows
+
+Conferência da ordem da turma, abertura no leitor de PDF e instalador offline para Windows x64.
+
 ## Etapas posteriores
 
-- Projetos de turma persistentes e assistentes de impressão.
+- Projetos de turma persistentes.
 - Ampliação dos modelos com recursos SVG.
-- Avaliação do gerenciamento de cor e empacotamento.
+- Avaliação do gerenciamento de cor.

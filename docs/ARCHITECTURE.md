@@ -11,6 +11,7 @@
 | `errors` | Representar falhas de leitura e exportação. |
 | `operation` | Reportar progresso e sinalizar cancelamento cooperativo sem depender de Qt. |
 | `batch` | Validar a estrutura da turma, chamar a exportação individual e registrar o resultado de cada aluno. |
+| `printing` | Representar os PDFs concluídos e calcular suas páginas a partir do total de fotos exportadas. |
 | `desktop` | Selecionar arquivos, exibir a primeira página e iniciar tarefas de validação e exportação em uma thread separada. |
 
 `Mosaic.slots()` fornece quatro retângulos em ordem de leitura. `compose_page()` calcula o espaço do modelo dentro das margens e entrega um `PageDesign` com as formas, molduras, áreas úteis das fotos e, quando preenchido, o título. A prévia Qt e a renderização ReportLab desenham essa composição usando suas respectivas unidades. Os temas internos são definidos em código e permanecem disponíveis offline.
@@ -22,3 +23,5 @@ O exportador grava um temporário na pasta de destino e publica por renomeação
 A interface armazena até quatro miniaturas em memória e recalcula a composição quando o modelo, o título ou as margens mudam. Ambos os renderizadores usam `Rect.contain()` para posicionar as fotos. Molduras são desenhadas apenas nas posições ocupadas. A exportação valida novamente a pasta antes de renderizar. O cancelamento é checado entre fotografias e antes da publicação do PDF.
 
 No modo Turma, a validação lê os arquivos de cada aluno e armazena contagens e problemas. As miniaturas são carregadas sob demanda apenas para o aluno selecionado. O lote usa a mesma exportação individual para cada subpasta apta, com cancelamento compartilhado e progresso por aluno. Cada PDF é publicado separadamente e o resultado registra arquivos gerados, falhas, alunos ignorados na validação e alunos pendentes após cancelamento.
+
+A janela de impressão lista os PDFs publicados na sessão, na ordem de exportação, e delega a visualização e impressão ao leitor de PDF do sistema. O empacotamento Windows fica em `scripts/windows`, separado do núcleo e do fluxo de desenvolvimento sem instalador.

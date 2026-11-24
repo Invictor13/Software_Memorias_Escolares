@@ -2,6 +2,10 @@
 
 O OKAMI transforma uma pasta de fotografias em um mosaico PDF A4 para impressão. O processamento acontece no computador, com quatro espaços por página e margem esquerda para encadernação.
 
+## Instalar no Windows x64
+
+Execute `OKAMI-Memorias-0.5.0-Windows-x64.exe` e abra **OKAMI Memórias Escolares 0.5.0** pelo menu Iniciar. O instalador inclui as dependências e funciona offline sem Python instalado. Para gerar o arquivo ou reproduzir a validação, consulte o [guia do instalador](docs/WINDOWS_INSTALLER.md).
+
 ## Interface desktop
 
 No PowerShell, a partir da raiz do projeto, com Python 3.11 ou superior:
@@ -25,6 +29,10 @@ Organize uma pasta com uma subpasta por aluno, como `Turma 5A/Ana`, `Turma 5A/Jo
 3. Escolha uma pasta de destino existente e clique em **Exportar turma**. Confira os arquivos gerados, falhas e pendências em **Ver resultado do lote**.
 
 Cada PDF recebe o nome da subpasta do aluno. Pastas vazias ou com arquivos inválidos são ignoradas. Se um PDF já existir, o lote registra a falha e continua com os demais alunos. Cancelar mantém os PDFs concluídos e descarta a exportação em andamento. Corrija as entradas e selecione novamente a pasta da turma para atualizar a validação.
+
+### Preparar a impressão
+
+Após exportar um álbum ou uma turma, clique em **Preparar impressão** para conferir a ordem dos PDFs e as páginas por arquivo. Abra o PDF selecionado ou a pasta de destino. No leitor de PDF, selecione A4, retrato e escala de **100% (Tamanho real)**. Imprima uma folha de teste e confira a margem de encadernação com uma régua.
 
 Para instalar sem rede, prepare o wheelhouse com `python -m pip wheel --wheel-dir wheelhouse ".[desktop]"` e instale `"okami-memorias[desktop]"` usando `--no-index --find-links wheelhouse`. Se o pip indicar caminhos longos no Windows, crie o ambiente virtual em um caminho curto, como `C:\venvs\okami` em uma pasta na qual você tenha acesso de escrita, e use o executável desse ambiente.
 

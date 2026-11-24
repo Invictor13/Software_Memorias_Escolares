@@ -8,6 +8,10 @@ A4_HEIGHT = 297
 PHOTOS_PER_PAGE = 4
 
 
+def page_count(photos: int) -> int:
+    return (photos + PHOTOS_PER_PAGE - 1) // PHOTOS_PER_PAGE
+
+
 @dataclass(frozen=True)
 class Rect:
     x: float

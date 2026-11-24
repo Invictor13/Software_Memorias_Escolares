@@ -13,6 +13,7 @@ from PySide6.QtCore import QEvent
 from PySide6.QtWidgets import QApplication, QFileDialog
 
 from okami_memorias.desktop import window as desktop
+from okami_memorias.desktop.print_dialog import PrintDialog
 from okami_memorias.desktop.window import MainWindow
 
 
@@ -79,6 +80,10 @@ def test_desktop_previews_and_exports(tmp_path, window, monkeypatch, theme_index
 
     pdf = PdfReader(destination)
     assert [len(page.images) for page in pdf.pages] == [4, 1]
+    assert window.print_button.isVisible()
+    assert [(document.path, document.pages) for document in window.print_documents] == [
+        (destination, 2)
+    ]
     if theme_index:
         assert all(page.extract_text().strip() == "Memórias da turma" for page in pdf.pages)
     assert float(pdf.pages[0].mediabox.width) * 25.4 / 72 == pytest.approx(210, abs=0.001)
@@ -164,6 +169,20 @@ def test_desktop_class_mode_previews_students_and_exports_batch(tmp_path, window
     assert len(window.batch_result.skipped) == 1
     assert len(window.batch_result.generated) == 3
     expected = [1, 1, 2]
+    assert [document.pages for document in window.print_documents] == expected
+    opened_dialogs = []
+
+    def collect_rows(dialog):
+        opened_dialogs.append([
+            [dialog.table.item(row, column).text() for column in range(3)]
+            for row in range(dialog.table.rowCount())
+        ])
+
+    monkeypatch.setattr(PrintDialog, "exec", collect_rows)
+    window.print_button.click()
+    assert opened_dialogs == [[
+        ["1", "Alice.pdf", "1"], ["2", "Bruno.pdf", "1"], ["3", "Cecília.pdf", "2"],
+    ]]
     for path, pages in zip(window.batch_result.generated, expected):
         pdf = PdfReader(path)
         assert len(pdf.pages) == pages
