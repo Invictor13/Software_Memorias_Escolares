@@ -7,19 +7,21 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from PIL import Image
+from reportlab.lib.colors import HexColor
 from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen.canvas import Canvas
 
+from .decoration import TITLE_FONT_NAME, PageDesign
 from .errors import ExportError
 from .imaging import load_photo
-from .layouts import A4_HEIGHT, A4_WIDTH, Rect
+from .layouts import A4_HEIGHT, A4_WIDTH
 from .operation import Operation
 
 PRINT_DPI = 300
 
 
-def render_pdf(stream, photos: list[Path], slots: tuple[Rect, ...],
+def render_pdf(stream, photos: list[Path], design: PageDesign,
                operation: Operation | None = None) -> None:
     pdf = Canvas(stream, pagesize=(A4_WIDTH * mm, A4_HEIGHT * mm),
                  pageCompression=1, invariant=1)
@@ -28,12 +30,18 @@ def render_pdf(stream, photos: list[Path], slots: tuple[Rect, ...],
     pdf.setSubject("Mosaico fotográfico A4")
     if operation:
         operation.progress("Montando páginas", 0, len(photos))
-    for offset in range(0, len(photos), len(slots)):
-        pdf.setFillColorRGB(1, 1, 1)
-        pdf.rect(0, 0, A4_WIDTH * mm, A4_HEIGHT * mm, fill=1, stroke=0)
-        for index, (path, slot) in enumerate(
-            zip(photos[offset:offset + len(slots)], slots), start=offset + 1
-        ):
+    for offset in range(0, len(photos), len(design.slots)):
+        page_photos = photos[offset:offset + len(design.slots)]
+        for fill in design.fills(len(page_photos)):
+            pdf.setFillColor(HexColor(fill.color))
+            rect = fill.rect
+            pdf.rect(rect.x * mm, rect.y * mm, rect.width * mm, rect.height * mm,
+                     fill=1, stroke=0)
+        if heading := design.heading:
+            pdf.setFillColor(HexColor(heading.color))
+            pdf.setFont(TITLE_FONT_NAME, heading.size * mm)
+            pdf.drawString(heading.x * mm, heading.baseline * mm, heading.text)
+        for index, (path, slot) in enumerate(zip(page_photos, design.slots), start=offset + 1):
             if operation:
                 operation.checkpoint()
             with load_photo(path) as photo, BytesIO() as encoded:
@@ -56,7 +64,7 @@ def render_pdf(stream, photos: list[Path], slots: tuple[Rect, ...],
     pdf.save()
 
 
-def export_pdf(destination: Path, photos: list[Path], slots: tuple[Rect, ...],
+def export_pdf(destination: Path, photos: list[Path], design: PageDesign,
                operation: Operation | None = None) -> None:
     temporary = None
     try:
@@ -65,7 +73,7 @@ def export_pdf(destination: Path, photos: list[Path], slots: tuple[Rect, ...],
         with NamedTemporaryFile(mode="w+b", suffix=".tmp", prefix=".okami-",
                                 dir=destination.parent, delete=False) as stream:
             temporary = Path(stream.name)
-            render_pdf(stream, photos, slots, operation)
+            render_pdf(stream, photos, design, operation)
         if operation:
             operation.checkpoint()
         # No Windows, rename recusa destinos existentes. Em POSIX, link dá a mesma garantia.

@@ -4,11 +4,12 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel,
+    QComboBox, QDoubleSpinBox, QFileDialog, QFormLayout, QFrame, QHBoxLayout, QLabel,
     QLineEdit, QMessageBox, QProgressBar, QPushButton, QVBoxLayout, QWidget,
 )
 
 from ..core import generate_album
+from ..decoration import THEMES, TITLE_LIMIT, compose_page
 from ..errors import OperationCancelled
 from ..layouts import Mosaic, PHOTOS_PER_PAGE
 from .preview import PagePreview
@@ -40,7 +41,7 @@ class MainWindow(QWidget):
         super().__init__()
         self.setWindowTitle("OKAMI Memórias Escolares")
         self.setObjectName("window")
-        self.resize(960, 680)
+        self.resize(960, 720)
         self.setStyleSheet(STYLE)
         self.job: Job | None = None
         self.scan: FolderScan | None = None
@@ -79,6 +80,19 @@ class MainWindow(QWidget):
         self.issues.clicked.connect(self.show_issues)
         self.issues.hide()
         settings.addWidget(self.issues, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        settings.addSpacing(8)
+        settings.addWidget(label("Modelo do mosaico", "section"))
+        self.theme = QComboBox()
+        self.theme.setAccessibleName("Modelo do mosaico")
+        self.theme.addItems([theme.name for theme in THEMES])
+        self.theme.currentIndexChanged.connect(self.update_preview)
+        settings.addWidget(self.theme)
+        self.album_title = QLineEdit(placeholderText="Título opcional")
+        self.album_title.setAccessibleName("Título opcional")
+        self.album_title.setMaxLength(TITLE_LIMIT)
+        self.album_title.textChanged.connect(self.update_preview)
+        settings.addWidget(self.album_title)
 
         settings.addSpacing(8)
         settings.addWidget(label("Margens e espaçamento", "section"))
@@ -151,20 +165,21 @@ class MainWindow(QWidget):
 
     def update_preview(self) -> None:
         try:
-            slots = self.layout_settings().slots()
+            design = compose_page(self.layout_settings(), THEMES[self.theme.currentIndex()],
+                                  self.album_title.text())
             error = ""
         except ValueError as exc:
-            slots = ()
+            design = None
             error = str(exc)
         self.layout_error.setText(error)
         self.layout_error.setVisible(bool(error))
         usable = self.scan is not None and not self.scan.invalid
-        self.preview.set_page(slots, self.scan.preview if usable else ())
+        self.preview.set_page(design, self.scan.preview if usable else ())
         pages = (self.scan.total + PHOTOS_PER_PAGE - 1) // PHOTOS_PER_PAGE if usable else 0
         self.page_label.setText(
             f"Prévia da página 1 de {pages}" if pages else "Prévia da primeira página"
         )
-        self.export.setEnabled(bool(slots and usable and self.destination and not self.job))
+        self.export.setEnabled(bool(design and usable and self.destination and not self.job))
 
     def pick_folder(self) -> None:
         selected = QFileDialog.getExistingDirectory(self, "Escolher pasta de fotos",
@@ -221,8 +236,11 @@ class MainWindow(QWidget):
 
     def start_export(self) -> None:
         directory, destination, layout = self.directory, self.destination, self.layout_settings()
+        theme = THEMES[self.theme.currentIndex()]
+        title = self.album_title.text()
         self.start_job(
-            lambda operation: generate_album(directory, destination, layout, operation=operation),
+            lambda operation: generate_album(directory, destination, layout, operation=operation,
+                                             theme=theme, title=title),
             self.export_finished,
         )
 
@@ -264,7 +282,8 @@ class MainWindow(QWidget):
         self.update_preview()
 
     def set_busy(self, busy: bool) -> None:
-        for widget in (self.choose_source, self.choose_target, self.issues, *self.margins.values()):
+        for widget in (self.choose_source, self.choose_target, self.issues,
+                       self.theme, self.album_title, *self.margins.values()):
             widget.setEnabled(not busy)
         self.cancel.setVisible(busy)
         self.cancel.setEnabled(busy)

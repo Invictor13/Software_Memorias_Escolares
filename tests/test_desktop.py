@@ -38,7 +38,8 @@ def wait_for_job(window):
     wait_until(lambda: window.job is None)
 
 
-def test_desktop_previews_and_exports(tmp_path, window, monkeypatch):
+@pytest.mark.parametrize("theme_index", [0, 2])
+def test_desktop_previews_and_exports(tmp_path, window, monkeypatch, theme_index):
     photos = tmp_path / "fotos"
     photos.mkdir()
     for index in range(5):
@@ -60,12 +61,19 @@ def test_desktop_previews_and_exports(tmp_path, window, monkeypatch):
     assert not window.export.isEnabled()
     window.margins["left"].setValue(25)
     assert window.preview.slots[0].x == 25
+    window.theme.setCurrentIndex(theme_index)
+    if theme_index:
+        window.album_title.setText("Memórias da turma")
+        assert window.preview.design.heading.text == "Memórias da turma"
+        assert window.preview.slots[0].x > 25
     assert window.export.isEnabled()
     window.export.click()
     wait_for_job(window)
 
     pdf = PdfReader(destination)
     assert [len(page.images) for page in pdf.pages] == [4, 1]
+    if theme_index:
+        assert all(page.extract_text().strip() == "Memórias da turma" for page in pdf.pages)
     assert float(pdf.pages[0].mediabox.width) * 25.4 / 72 == pytest.approx(210, abs=0.001)
     assert float(pdf.pages[0].mediabox.height) * 25.4 / 72 == pytest.approx(297, abs=0.001)
     actions = pdf.pages[0].get_contents().operations
@@ -94,7 +102,7 @@ def test_desktop_cancel_button_signals_worker(tmp_path, window, monkeypatch):
     window.set_destination(tmp_path / "album.pdf")
     resume = Event()
 
-    def export_with_pause(directory, destination, layout, *, operation):
+    def export_with_pause(directory, destination, layout, *, operation, theme, title):
         operation.progress("Montando páginas", 1, 2)
         if not resume.wait(timeout=5):
             raise AssertionError("A janela não respondeu")
