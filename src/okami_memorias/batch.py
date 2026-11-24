@@ -9,6 +9,7 @@ from .errors import ExportError, OperationCancelled, PhotoError
 from .imaging import discover, load_photo
 from .layouts import Mosaic
 from .operation import Operation
+from .printing import PrintDocument
 
 
 @dataclass(frozen=True)
@@ -29,10 +30,14 @@ class Student:
 
 @dataclass(frozen=True)
 class BatchResult:
-    generated: tuple[Path, ...]
+    documents: tuple[PrintDocument, ...]
     failed: tuple[tuple[Student, str], ...]
     skipped: tuple[Student, ...]
     pending: tuple[Student, ...] = ()
+
+    @property
+    def generated(self) -> tuple[Path, ...]:
+        return tuple(document.path for document in self.documents)
 
 
 def scan_class(directory: Path, operation: Operation) -> tuple[Student, ...]:
@@ -76,19 +81,19 @@ def export_class(students: tuple[Student, ...], destination: Path, operation: Op
     compose_page(layout, theme, "" if student_titles else title)
     ready = tuple(student for student in students if student.ready)
     skipped = tuple(student for student in students if not student.ready)
-    generated = []
+    documents = []
     failed = []
     photo_operation = operation.without_progress()
     for index, student in enumerate(ready):
         target = destination / f"{student.name}.pdf"
         try:
             operation.progress(f"Exportando aluno {index + 1} de {len(ready)}", index, len(ready))
-            generate_album(student.directory, target, layout, operation=photo_operation,
-                           theme=theme, title=student.name if student_titles else title)
+            count = generate_album(student.directory, target, layout, operation=photo_operation,
+                                   theme=theme, title=student.name if student_titles else title)
         except OperationCancelled:
-            return BatchResult(tuple(generated), tuple(failed), skipped, ready[index:])
+            return BatchResult(tuple(documents), tuple(failed), skipped, ready[index:])
         except (ExportError, PhotoError, ValueError) as exc:
             failed.append((student, str(exc)))
         else:
-            generated.append(target)
-    return BatchResult(tuple(generated), tuple(failed), skipped)
+            documents.append(PrintDocument.from_photos(target, count))
+    return BatchResult(tuple(documents), tuple(failed), skipped)

@@ -1,5 +1,10 @@
 # Histórico de alterações
 
+## 0.5.0 — P4
+
+- Preparação para impressão com ordem dos PDFs, páginas por arquivo e abertura no leitor do sistema.
+- Build de instalador offline para Windows x64, com atalho do menu Iniciar, desinstalador e teste automatizado.
+
 ## 0.4.0 — P3
 
 - Modo Turma com descoberta de alunos por subpasta, contagens e lista de problemas.

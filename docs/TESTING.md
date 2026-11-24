@@ -16,3 +16,5 @@ Os testes da interface usam o modo `offscreen` do Qt e simulam a seleção nos d
 Os testes dos modelos verificam a compatibilidade do Branco, as margens, as cores e posições dos elementos no PDF, o título acentuado, as proporções das fotografias e a paginação 4 + 1. Os testes Qt exercitam a seleção do modelo e a exportação com título.
 
 Os testes de turma verificam três alunos com 1, 4 e 5 fotos, PDFs de 1, 1 e 2 páginas, margem esquerda de 25 mm e título por aluno. Também cobrem a troca de prévia, pastas vazias, fotos inválidas, destino existente e cancelamento após o primeiro PDF.
+
+Os testes Qt verificam também as linhas de ordem, arquivo e páginas exibidas em **Preparar impressão**. O teste do executável instalado e o roteiro para uma máquina limpa e uma folha física estão no [guia do instalador Windows](WINDOWS_INSTALLER.md).

@@ -96,6 +96,7 @@ def test_batch_cancellation_keeps_completed_pdf_and_discards_current(tmp_path, m
     monkeypatch.setattr(export, "render_pdf", render_and_cancel)
     result = export_class(roster, target, operation)
     assert result.generated == (target / "A.pdf",)
+    assert [document.pages for document in result.documents] == [1]
     assert [student.name for student in result.pending] == ["B", "C"]
     assert list(target.iterdir()) == [target / "A.pdf"]
     assert len(PdfReader(result.generated[0]).pages) == 1

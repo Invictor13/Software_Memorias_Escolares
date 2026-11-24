@@ -12,9 +12,11 @@ from ..batch import BatchResult, export_class, scan_class
 from ..core import generate_album
 from ..decoration import THEMES, TITLE_LIMIT, compose_page
 from ..errors import OperationCancelled
-from ..layouts import Mosaic, PHOTOS_PER_PAGE
+from ..layouts import Mosaic, page_count
+from ..printing import PrintDocument
 from .class_panel import ClassPanel, show_batch_result
 from .preview import PagePreview
+from .print_dialog import PrintDialog
 from .tasks import FolderScan, Job, preview_student, scan_folder
 
 STYLE = """
@@ -50,6 +52,7 @@ class MainWindow(QWidget):
         self.directory: Path | None = None
         self.destination: Path | None = None
         self.batch_result: BatchResult | None = None
+        self.print_documents: tuple[PrintDocument, ...] = ()
         self._closing = False
 
         body = QVBoxLayout(self)
@@ -171,12 +174,16 @@ class MainWindow(QWidget):
         self.result_button = QPushButton("Ver resultado do lote")
         self.result_button.clicked.connect(self.show_result)
         self.result_button.hide()
+        self.print_button = QPushButton("Preparar impressão")
+        self.print_button.clicked.connect(self.prepare_printing)
+        self.print_button.hide()
         self.export = QPushButton("Gerar PDF", objectName="primary")
         self.export.clicked.connect(self.start_export)
         footer.addWidget(self.status, 1)
         footer.addWidget(self.progress)
         footer.addWidget(self.cancel)
         footer.addWidget(self.result_button)
+        footer.addWidget(self.print_button)
         footer.addWidget(self.export)
         body.addLayout(footer)
         self.mode.currentIndexChanged.connect(self.change_mode)
@@ -231,7 +238,7 @@ class MainWindow(QWidget):
         self.layout_error.setVisible(bool(error))
         usable = self.scan is not None and not self.scan.invalid
         self.preview.set_page(design, self.scan.preview if usable else ())
-        pages = (self.scan.total + PHOTOS_PER_PAGE - 1) // PHOTOS_PER_PAGE if usable else 0
+        pages = page_count(self.scan.total) if usable else 0
         heading = f"Prévia da página 1 de {pages}" if pages else "Prévia da primeira página"
         if student:
             heading = f"{heading} · {student.name}"
@@ -257,10 +264,10 @@ class MainWindow(QWidget):
         self.source.setText(str(directory))
         self.source.setToolTip(str(directory))
         self.scan = None
+        self.clear_result()
         self.issues.hide()
         self.summary.setText("Verificando fotos…")
         if self.is_class:
-            self.clear_result()
             self.class_panel.set_students(())
             self.start_job(lambda operation: scan_class(directory, operation), self.class_finished)
         else:
@@ -341,8 +348,8 @@ class MainWindow(QWidget):
         directory, destination, layout = self.directory, self.destination, self.layout_settings()
         theme = THEMES[self.theme.currentIndex()]
         title = self.album_title.text()
+        self.clear_result()
         if self.is_class:
-            self.clear_result()
             students = self.class_panel.students
             use_name = self.use_student_title.isChecked()
             self.start_job(
@@ -363,10 +370,19 @@ class MainWindow(QWidget):
         else:
             self.status.setText(f"PDF salvo com {job.result} foto(s).")
             self.status.setToolTip(str(self.destination))
+            self.set_print_documents((PrintDocument.from_photos(self.destination, job.result),))
+
+    def set_print_documents(self, documents: tuple[PrintDocument, ...]) -> None:
+        self.print_documents = documents
+        self.print_button.setVisible(bool(documents))
+
+    def prepare_printing(self) -> None:
+        PrintDialog(self.print_documents, self).exec()
 
     def clear_result(self) -> None:
         self.batch_result = None
         self.result_button.hide()
+        self.set_print_documents(())
 
     def batch_finished(self, job: Job) -> None:
         if job.error:
@@ -379,6 +395,7 @@ class MainWindow(QWidget):
                               + (f" · {len(result.pending)} pendente(s)" if result.pending else ""))
         self.status.setText(self.batch_summary)
         self.result_button.show()
+        self.set_print_documents(result.documents)
 
     def show_result(self) -> None:
         show_batch_result(self, self.batch_summary, self.batch_result)
@@ -420,6 +437,7 @@ class MainWindow(QWidget):
     def set_busy(self, busy: bool) -> None:
         for widget in (self.mode, self.choose_source, self.choose_target, self.issues,
                        self.theme, self.use_student_title, self.class_panel, self.result_button,
+                       self.print_button,
                        *self.margins.values()):
             widget.setEnabled(not busy)
         self.cancel.setVisible(busy)

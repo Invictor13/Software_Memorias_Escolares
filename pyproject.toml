@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "okami-memorias"
-version = "0.4.0"
+version = "0.5.0"
 description = "Motor offline de mosaicos fotográficos escolares"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,6 +13,7 @@ dependencies = ["Pillow>=11,<13", "reportlab>=4.2,<5"]
 [project.optional-dependencies]
 test = ["pytest>=8,<10", "pypdf>=5,<7"]
 desktop = ["PySide6-Essentials>=6.8,<7"]
+windows-build = ["PyInstaller>=6.20,<7; sys_platform == 'win32'"]
 
 [project.gui-scripts]
 okami-memorias = "okami_memorias.desktop.__main__:main"

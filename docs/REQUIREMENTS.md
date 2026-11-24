@@ -1,4 +1,4 @@
-# Requisitos P0 a P3
+# Requisitos P0 a P4
 
 - Executar localmente com Python 3.11 ou superior, Pillow e ReportLab.
 - Importar JPG, JPEG e PNG do nível imediato da pasta, em ordem de nome sem distinção de caixa, com desempate pelo nome original.
@@ -15,3 +15,5 @@
 - Importar alunos a partir das subpastas imediatas da turma e exibir a contagem de fotos e problemas de cada aluno.
 - Usar configurações de layout comuns, prévia por aluno e opções de título comum ou nome da subpasta.
 - Exportar um PDF A4 por aluno apto para uma pasta de destino existente. Continuar após falhas individuais, proteger os arquivos existentes e preservar os PDFs concluídos se o lote for cancelado.
+- Exibir a ordem e as páginas dos PDFs concluídos e orientar impressão em A4 retrato a 100%.
+- Fornecer instalador offline para Windows x64, com atalho e desinstalador por usuário.
